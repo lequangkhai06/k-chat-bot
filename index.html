@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CHATBOT TIẾNG VIỆT</title>
+    <link rel="shortcut icon" href="files/images/K.png" type="image/x-icon">
+    <script src="files/js/tailwind.js"></script>
+    <script src="files/js/vue.global.js"></script>
+    <script src="files/js/axios.min.js"></script>
+    <link rel="stylesheet" href="files/css/custom.css" />
+    <link href="https://kit-pro.fontawesome.com/releases/v6.1.1/css/pro.min.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    <main id="app">
+        <div class="w-screen h-screen bg-grey-500 flex flex-col">
+            <div class="bg-cyan-600 flex justify-center p-4">
+                <span class="text-white text-bold"><i class="fa-solid fa-message-bot"></i> K-AI</span>
+            </div>
+            <div class="w-full max-w-screen-lg flex-1 m-auto p-8 my-4 pb-20 overflow-y-auto scroll-there">
+                <div class="flex flex-col">
+                    <!-- welcome message -->
+                    <div class="message rounded-lg py-2 px-6 mb-4 assistant bg-blue-100 border-blue-100 self-start">
+                        <span class="welcome">Xin chào! Tôi là chat bot tiếng Việt, tôi sẽ cố gắng giúp bạn trong khả
+                            năng của mình. Hãy đặt câu hỏi hoặc chia sẻ vấn đề mà bạn muốn tôi giúp đỡ.</span>
+                    </div>
+                    <!-- show message -->
+                    <template v-for="message in messages">
+                        <div class="rounded-lg py-2 px-6 mb-4" v-if="message.role !== 'system'"
+                            v-bind:class="messageClasses(message.role)">
+                            <span class="answer" v-text="message.content"></span>
+                        </div>
+                    </template>
+
+                    <div v-if="showTyping">
+                        <div
+                            class="message assistant rounded-lg py-2.5 px-6 mb-4 bg-blue-100 border-blue-100 self-start">
+                            <div class="type-indicator"><span>.</span><span>.</span><span>.</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="fixed inset-x-0 bottom-0 bg-gray-50">
+                <form class="max-w-screen-lg m-auto w-full p-5 flex space-x-3 justify-center items-center"
+                    @submit.prevent="sendMessage">
+                    <input id="message" type="text" autocomplete="off"
+                        class="bg-gray-50 appearance-none border-2 border-gray-200 rounded w-full rounded-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-600"
+                        v-model="userInput" placeholder="Nhập tin nhắn..." required />
+
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+                        :disabled="isDisabled">
+                        <i v-if="isLoading" class="fa-duotone fa-spinner-third fa-spin"
+                            style="--fa-secondary-opacity: 0.2;"></i>
+                        <i v-if="!isLoading" class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+    <script>
+        const { createApp, ref } = Vue;
+        // Comment nếu dùng local gpt
+        const OPEN_AI_ENDPOINT = "https://api.openai.com/v1"; 
+        const chatGPTKey = "sk-*****";  // Dán khóa API vào đây
+        // Comment nếu dùng api gpt
+        // const OPEN_AI_ENDPOINT = 'http://localhost:8000/v1'
+
+        createApp({
+            setup() {
+                const userInput = ref("");
+                const messages = ref([
+                    {
+                        role: "system",
+                        content: "Bạn là chat bot do Khải phát triển.",
+                    },
+                ]);
+                const isLoading = ref(false);
+                const showTyping = ref(false);
+                const isDisabled = ref(false);
+                
+                const messageClasses = (role) => ({
+                    "message user bg-green-200 border-green-200 self-end": role === "user",
+                    "message assistant bg-blue-100 border-blue-100 self-start": role === "assistant",
+                });
+
+                async function sendMessage() {
+                    if (!userInput.value.trim()) return;
+
+                    // Append user message
+                    messages.value.push({
+                        role: "user",
+                        content: userInput.value,
+                    });
+
+                    try {
+                        isLoading.value = true;
+                        userInput.value = "";
+                        showTyping.value = true;
+                        isDisabled.value = true;
+
+                        // Send API request to OpenAI endpoint
+                        const response = await axios.post(
+                            `${OPEN_AI_ENDPOINT}/chat/completions`,
+                            {
+                                model: "gpt-3.5-turbo",
+                                //model: 'gpt-4-1106-preview',
+                                messages: messages.value,
+                                temperature: 0.9,
+                                max_tokens: 1000,
+                            },
+                            {
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${chatGPTKey}`,
+                                },
+                            }
+                        );
+
+                        // Append ChatGPT response
+                        messages.value.push({
+                            role: "assistant",
+                            content: response.data.choices[0].message.content,
+                        });
+                        // Cuộn đến cuối trang
+                        const messagesContainer = document.querySelector('.scroll-there');
+                        const lastMessage = messagesContainer.lastElementChild;
+
+                        if (lastMessage) {
+                            lastMessage.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    } catch (error) {
+                        console.error("There was an error with the API request", error);
+                    } finally {
+                        showTyping.value = false;
+                        isLoading.value = false;
+                        isDisabled.value = false;
+                    }
+                }
+
+                // console.log(messages);
+
+                return {
+                    userInput,
+                    messages,
+                    messageClasses,
+                    sendMessage,
+                    isLoading,
+                    showTyping,
+                    isDisabled
+                };
+            },
+        }).mount("#app");
+    </script>
+</body>
+
+</html>
