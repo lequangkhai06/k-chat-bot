@@ -84,3 +84,12 @@ Chạy ứng dụng lại. Nó sẽ sử dụng localhost để giao tiếp vớ
 
 ***TailwindCSS, VueJS (Axios)***
 
+
+## Tech Stack
+
+***TailwindCSS, VueJS (Axios)***
+
+
+## Demo
+
+![](https://i.imgur.com/ZaHAYwQ.png)
