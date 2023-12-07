@@ -93,3 +93,4 @@ Chạy ứng dụng lại. Nó sẽ sử dụng localhost để giao tiếp vớ
 ## Demo
 
 ![](https://i.imgur.com/ZaHAYwQ.png)
+![](https://i.imgur.com/W5dgYQt.png)
